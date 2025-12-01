@@ -19,11 +19,14 @@ import riscv.Parameters
 // The regs_write_source signal (from Decode stage) determines which source is selected.
 class WriteBack extends Module {
   val io = IO(new Bundle() {
-    val instruction_address = Input(UInt(Parameters.AddrWidth))
-    val alu_result          = Input(UInt(Parameters.DataWidth))
-    val memory_read_data    = Input(UInt(Parameters.DataWidth))
-    val regs_write_source   = Input(UInt(2.W))
-    val regs_write_data     = Output(UInt(Parameters.DataWidth))
+    // Inputs
+    val instruction_address = Input(UInt(Parameters.AddrWidth))   // 當前 PC 值
+    val alu_result          = Input(UInt(Parameters.DataWidth))   // ALU 計算結果
+    val memory_read_data    = Input(UInt(Parameters.DataWidth))   // 從記憶體讀取的資料
+    val regs_write_source   = Input(UInt(2.W))                    // 控制訊號（選擇哪個來源）
+
+    // Outputs
+    val regs_write_data     = Output(UInt(Parameters.DataWidth))  // 要寫回暫存器的資料
   })
 
   // ============================================================
@@ -43,10 +46,12 @@ class WriteBack extends Module {
   //
   // TODO: Complete MuxLookup to multiplex writeback sources
   // Hint: Specify default value and cases for each source type
-  io.regs_write_data := MuxLookup(io.regs_write_source, ?)(
+
+  // io.alu_result 作為預設值，大多數指令（算術、邏輯）使用 ALU 結果
+  io.regs_write_data := MuxLookup(io.regs_write_source, io.alu_result)(
     Seq(
-      RegWriteSource.Memory                 -> ?,
-      RegWriteSource.NextInstructionAddress -> ?
+      RegWriteSource.Memory                 -> io.memory_read_data,             // Memory case，Load 指令需要記憶體讀取的資料
+      RegWriteSource.NextInstructionAddress -> (io.instruction_address + 4.U)   // NextInstructionAddress case，JAL/JALR 需要儲存返回位址（下一條指令的位址）
     )
   )
 }
