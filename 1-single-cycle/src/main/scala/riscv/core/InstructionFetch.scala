@@ -26,13 +26,15 @@ object ProgramCounter {
 // The instruction_valid signal gates PC updates to handle memory latency and stalls.
 class InstructionFetch extends Module {
   val io = IO(new Bundle {
-    val jump_flag_id          = Input(Bool())
-    val jump_address_id       = Input(UInt(Parameters.AddrWidth))
-    val instruction_read_data = Input(UInt(Parameters.DataWidth))
-    val instruction_valid     = Input(Bool())
+    // Inputs
+    val jump_flag_id          = Input(Bool())                             // 是否要跳轉？
+    val jump_address_id       = Input(UInt(Parameters.AddrWidth))         // 跳轉目標位址
+    val instruction_read_data = Input(UInt(Parameters.DataWidth))         // 從記憶體讀到的指令
+    val instruction_valid     = Input(Bool())                             // 指令是否有效？
 
-    val instruction_address = Output(UInt(Parameters.AddrWidth))
-    val instruction         = Output(UInt(Parameters.InstructionWidth))
+    // Outputs
+    val instruction_address = Output(UInt(Parameters.AddrWidth))          // PC 值
+    val instruction         = Output(UInt(Parameters.InstructionWidth))   // 指令
   })
 
   // Program counter register (PC)
@@ -67,7 +69,8 @@ class InstructionFetch extends Module {
     // - Check jump flag condition
     // - True case: Use jump target address
     // - False case: Sequential execution
-    pc := ?
+    pc := Mux(io.jump_flag_id, io.jump_address_id, pc + 4.U)    // if jump_flag_id is true, jump to jump_address_id; else pc + 4
+    // if instruction_valid = false, hold pc
 
   }.otherwise {
     // When instruction is invalid, hold PC and insert NOP (ADDI x0, x0, 0)
